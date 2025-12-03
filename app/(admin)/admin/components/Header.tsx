@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 import { Search, Bell, Menu, Sun, Moon, ChevronRight, User, LogOut, Settings } from 'lucide-react';
 
 interface HeaderProps {
@@ -11,6 +13,31 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, isDarkMode, toggleTheme, breadcrumbs }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { user, logout, loading } = useAuth();
+
+  const initials = useMemo(() => {
+    if (user?.name) {
+      const parts = user.name.trim().split(/\s+/);
+      return parts.length === 1
+        ? parts[0].slice(0, 2).toUpperCase()
+        : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.slice(0, 2).toUpperCase();
+    }
+    return '--';
+  }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      setShowProfileMenu(false);
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -79,14 +106,31 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isDarkMode, toggleTheme,
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 overflow-hidden border border-slate-200 dark:border-slate-700 cursor-pointer flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-             <span className="font-bold text-xs text-indigo-700 dark:text-indigo-300">AD</span>
+             {loading ? (
+               <span className="h-3 w-6 rounded-full bg-indigo-200 dark:bg-indigo-800 animate-pulse"></span>
+             ) : (
+               <span className="font-bold text-xs text-indigo-700 dark:text-indigo-300">{initials}</span>
+             )}
           </button>
 
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 border border-slate-200 dark:border-slate-700 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Admin User</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">admin@zenui.com</p>
+                  {loading ? (
+                    <div className="space-y-2">
+                      <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-36 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user?.name || 'Nguoi dung'}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {user?.email || '---'}
+                      </p>
+                    </>
+                  )}
                </div>
                
                <div className="py-1">
@@ -101,7 +145,10 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isDarkMode, toggleTheme,
                </div>
                
                <div className="border-t border-slate-100 dark:border-slate-700 py-1">
-                 <button className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
+                 <button
+                   onClick={handleLogout}
+                   className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                 >
                     <LogOut size={16} /> 
                     <span>Đăng xuất</span>
                  </button>
