@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import RichTextEditor from './RichTextEditor';
+import React, { useEffect, useMemo, useState } from 'react';
+import { SerializedEditorState } from 'lexical';
+import { Editor } from '@/components/blocks/editor-00/editor';
 
 export interface PostFormValues {
   title: string;
@@ -39,6 +40,49 @@ const slugify = (value: string) =>
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 
+const createSerializedFromPlainText = (text: string): SerializedEditorState => ({
+  root: {
+    children: [
+      {
+        children: text
+          ? [
+              {
+                detail: 0,
+                format: 0,
+                mode: 'normal',
+                style: '',
+                text,
+                type: 'text',
+                version: 1,
+              },
+            ]
+          : [],
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        type: 'paragraph',
+        version: 1,
+      },
+    ],
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    type: 'root',
+    version: 1,
+  },
+});
+
+const normaliseEditorState = (value?: string): SerializedEditorState | undefined => {
+  if (!value) return createSerializedFromPlainText('');
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed?.root) return parsed as SerializedEditorState;
+  } catch {
+    return createSerializedFromPlainText(value);
+  }
+  return createSerializedFromPlainText(value);
+};
+
 const PostForm: React.FC<PostFormProps> = ({
   initialValues,
   submitting = false,
@@ -48,6 +92,8 @@ const PostForm: React.FC<PostFormProps> = ({
   hideSlug = false,
   hideOrder = false,
 }) => {
+  const initialEditorState = normaliseEditorState(initialValues?.content);
+
   const [formValues, setFormValues] = useState<PostFormValues>({
     ...defaultValues,
     ...initialValues,
@@ -59,11 +105,21 @@ const PostForm: React.FC<PostFormProps> = ({
       initialValues?.active !== undefined
         ? initialValues.active
         : defaultValues.active,
+    content: JSON.stringify(initialEditorState ?? createSerializedFromPlainText('')),
   });
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initialValues?.slug));
-  const [contentSeed, setContentSeed] = useState<string>(initialValues?.content ?? '');
+  const [editorState, setEditorState] = useState<SerializedEditorState | undefined>(
+    initialEditorState,
+  );
+
+  const contentSeed = useMemo(() => {
+    if (!editorState) return 'seed-empty';
+    const seed = JSON.stringify(editorState);
+    return seed ? `seed-${seed.slice(0, 24)}-${seed.length}` : 'seed-empty';
+  }, [editorState]);
 
   useEffect(() => {
+    const nextEditorState = normaliseEditorState(initialValues?.content);
     setFormValues({
       ...defaultValues,
       ...initialValues,
@@ -75,9 +131,10 @@ const PostForm: React.FC<PostFormProps> = ({
         initialValues?.active !== undefined
           ? initialValues.active
           : defaultValues.active,
+      content: JSON.stringify(nextEditorState ?? createSerializedFromPlainText('')),
     });
     setSlugEdited(Boolean(initialValues?.slug));
-    setContentSeed(initialValues?.content ?? '');
+    setEditorState(nextEditorState);
   }, [
     initialValues?.title,
     initialValues?.slug,
@@ -100,10 +157,11 @@ const PostForm: React.FC<PostFormProps> = ({
     setFormValues((prev) => ({ ...prev, slug: value }));
   };
 
-  const handleContentChange = (jsonValue: string, plainText: string) => {
+  const handleContentChange = (value: SerializedEditorState) => {
+    setEditorState(value);
     setFormValues((prev) => ({
       ...prev,
-      content: jsonValue || plainText,
+      content: JSON.stringify(value),
     }));
   };
 
@@ -160,11 +218,10 @@ const PostForm: React.FC<PostFormProps> = ({
         <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
           Noi dung *
         </label>
-        <RichTextEditor
+        <Editor
           key={editorKey}
-          initialValue={contentSeed}
-          onChange={handleContentChange}
-          placeholder="Nhap noi dung bai viet"
+          editorSerializedState={editorState}
+          onSerializedChange={handleContentChange}
         />
       </div>
 

@@ -112,9 +112,11 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       width,
     })
     const nestedEditor = node.__caption
-    const editorState = nestedEditor.parseEditorState(caption.editorState)
-    if (!editorState.isEmpty()) {
-      nestedEditor.setEditorState(editorState)
+    if (caption?.editorState) {
+      const editorState = nestedEditor.parseEditorState(caption.editorState)
+      if (!editorState.isEmpty()) {
+        nestedEditor.setEditorState(editorState)
+      }
     }
     return node
   }
