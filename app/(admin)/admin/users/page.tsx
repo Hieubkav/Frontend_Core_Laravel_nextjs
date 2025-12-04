@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 import api from '@/lib/api';
@@ -29,11 +29,6 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Load users on mount
-  useState(() => {
-    loadUsers();
-  }, []);
-
   const loadUsers = async () => {
     try {
       const response = await api.get<{ data: User[] }>('/users');
@@ -44,6 +39,11 @@ export default function UsersPage() {
       setPageLoading(false);
     }
   };
+
+  // Load users on mount
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
