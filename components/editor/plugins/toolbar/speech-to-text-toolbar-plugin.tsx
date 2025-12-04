@@ -12,9 +12,38 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-type SpeechRecognitionType =
-  | (SpeechRecognition & { lang: string })
-  | (webkitSpeechRecognition & { lang: string })
+type SpeechRecognitionResultListLike = {
+  length: number
+  [index: number]: {
+    0: { transcript: string }
+    length: number
+  }
+}
+
+type SpeechRecognitionEventLike = Event & {
+  results: SpeechRecognitionResultListLike
+}
+
+interface SpeechRecognitionInstance {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  start: () => void
+  stop: () => void
+  onaudiostart?: () => void
+  onresult?: (event: SpeechRecognitionEventLike) => void
+  onerror?: (event: Event) => void
+  onend?: () => void
+}
+
+type SpeechRecognitionType = SpeechRecognitionInstance
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: new () => SpeechRecognitionInstance
+    SpeechRecognition?: new () => SpeechRecognitionInstance
+  }
+}
 
 export function SpeechToTextToolbarPlugin(): JSX.Element {
   const { activeEditor } = useToolbarContext()
@@ -23,9 +52,10 @@ export function SpeechToTextToolbarPlugin(): JSX.Element {
   const [supported, setSupported] = useState(false)
 
   useEffect(() => {
-    const SpeechRecognitionImpl =
-      typeof window !== "undefined" &&
-      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    const SpeechRecognitionImpl: (new () => SpeechRecognitionInstance) | undefined =
+      typeof window !== "undefined"
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : undefined
 
     if (SpeechRecognitionImpl) {
       recognitionRef.current = new SpeechRecognitionImpl()
@@ -41,7 +71,7 @@ export function SpeechToTextToolbarPlugin(): JSX.Element {
   }, [])
 
   const handleResult = useCallback(
-    (event: SpeechRecognitionEvent) => {
+    (event: SpeechRecognitionEventLike) => {
       const transcript = Array.from(event.results)
         .map((result) => result[0].transcript)
         .join(" ")

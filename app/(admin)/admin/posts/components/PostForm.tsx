@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { SerializedEditorState } from 'lexical';
+import {
+  SerializedEditorState,
+  SerializedLexicalNode,
+  SerializedParagraphNode,
+  SerializedRootNode,
+  SerializedTextNode,
+} from 'lexical';
+import slugify from 'slugify';
 import { Editor } from '@/components/blocks/editor-00/editor';
 
 export interface PostFormValues {
@@ -32,45 +39,49 @@ const defaultValues: PostFormValues = {
   active: true,
 };
 
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+const toSlug = (value: string) =>
+  slugify(value, {
+    lower: true,
+    locale: 'vi',
+    strict: true,
+    trim: true,
+  });
 
-const createSerializedFromPlainText = (text: string): SerializedEditorState => ({
-  root: {
-    children: [
-      {
-        children: text
-          ? [
-              {
-                detail: 0,
-                format: 0,
-                mode: 'normal',
-                style: '',
-                text,
-                type: 'text',
-                version: 1,
-              },
-            ]
-          : [],
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        type: 'paragraph',
-        version: 1,
-      },
-    ],
+const createSerializedFromPlainText = (text: string): SerializedEditorState => {
+  const textNode: SerializedTextNode = {
+    detail: 0,
+    format: 0,
+    mode: 'normal',
+    style: '',
+    text,
+    type: 'text',
+    version: 1,
+  };
+
+  const paragraphChildren: SerializedLexicalNode[] = text ? [textNode] : [];
+
+  const paragraph: SerializedParagraphNode = {
+    children: paragraphChildren,
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    textFormat: 0,
+    textStyle: '',
+    type: 'paragraph',
+    version: 1,
+  };
+
+  const root: SerializedRootNode = {
+    children: [paragraph],
     direction: 'ltr',
     format: '',
     indent: 0,
     type: 'root',
     version: 1,
-  },
-});
+  };
+
+  return { root };
+};
 
 const normaliseEditorState = (value?: string): SerializedEditorState | undefined => {
   if (!value) return createSerializedFromPlainText('');
@@ -148,13 +159,13 @@ const PostForm: React.FC<PostFormProps> = ({
     setFormValues((prev) => ({
       ...prev,
       title: value,
-      slug: slugEdited ? prev.slug : slugify(value),
+      slug: slugEdited ? prev.slug : toSlug(value),
     }));
   };
 
   const handleSlugChange = (value: string) => {
     setSlugEdited(true);
-    setFormValues((prev) => ({ ...prev, slug: value }));
+    setFormValues((prev) => ({ ...prev, slug: toSlug(value) }));
   };
 
   const handleContentChange = (value: SerializedEditorState) => {

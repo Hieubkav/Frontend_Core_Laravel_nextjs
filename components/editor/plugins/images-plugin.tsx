@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils"
 import {
@@ -18,7 +18,9 @@ import {
   DRAGSTART_COMMAND,
   DROP_COMMAND,
   LexicalCommand,
+  LexicalEditor,
 } from "lexical"
+import type { JSX } from "react"
 
 import {
   $createImageNode,
@@ -27,6 +29,11 @@ import {
   InsertImagePayload,
   INSERT_IMAGE_COMMAND,
 } from "@/components/editor/nodes/image-node"
+
+type DragEventWithRange = DragEvent & {
+  rangeParent?: Node | null
+  rangeOffset?: number
+}
 
 const getDOMSelection = (targetWindow: Window | null): Selection | null =>
   typeof window !== "undefined"
@@ -73,6 +80,125 @@ export function ImagesPlugin(): JSX.Element | null {
   }, [editor])
 
   return null
+}
+
+type InsertImageDialogProps = {
+  activeEditor: LexicalEditor
+  onClose: () => void
+}
+
+const toDimension = (value: string): number | undefined => {
+  if (!value.trim()) return undefined
+  const parsed = Number(value)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
+export function InsertImageDialog({
+  activeEditor,
+  onClose,
+}: InsertImageDialogProps): JSX.Element {
+  const [src, setSrc] = useState("")
+  const [altText, setAltText] = useState("")
+  const [width, setWidth] = useState("")
+  const [height, setHeight] = useState("")
+  const [captionsEnabled, setCaptionsEnabled] = useState(false)
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!src.trim()) return
+
+    const payload: InsertImagePayload = {
+      src: src.trim(),
+      altText: altText.trim(),
+      width: toDimension(width),
+      height: toDimension(height),
+      captionsEnabled,
+    }
+
+    activeEditor.dispatchCommand(INSERT_IMAGE_COMMAND, payload)
+    onClose()
+  }
+
+  return (
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          URL anh *
+        </label>
+        <input
+          value={src}
+          onChange={(e) => setSrc(e.target.value)}
+          required
+          placeholder="https://example.com/image.jpg"
+          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          Alt text
+        </label>
+        <input
+          value={altText}
+          onChange={(e) => setAltText(e.target.value)}
+          placeholder="Mo ta ngan"
+          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Width (px)
+          </label>
+          <input
+            value={width}
+            onChange={(e) => setWidth(e.target.value)}
+            placeholder="Vi du: 600"
+            className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Height (px)
+          </label>
+          <input
+            value={height}
+            onChange={(e) => setHeight(e.target.value)}
+            placeholder="Vi du: 400"
+            className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+        <input
+          type="checkbox"
+          checked={captionsEnabled}
+          onChange={(e) => setCaptionsEnabled(e.target.checked)}
+          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+        />
+        Cho phep caption
+      </label>
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm"
+        >
+          Huy
+        </button>
+        <button
+          type="submit"
+          className="rounded-md bg-indigo-600 text-white px-3 py-2 text-sm disabled:opacity-50"
+          disabled={!src.trim()}
+        >
+          Chen anh
+        </button>
+      </div>
+    </form>
+  )
 }
 
 function $getImageNodeInSelection(): ImageNode | null {
@@ -163,13 +289,12 @@ function getDragSelection(event: DragEvent): Range | null | undefined {
         ? (target as Document).defaultView
         : (target as Element).ownerDocument.defaultView
   const domSelection = getDOMSelection(targetWindow)
+  const dragEvent = event as DragEventWithRange
   if (document.caretRangeFromPoint) {
     range = document.caretRangeFromPoint(event.clientX, event.clientY)
-  } else if (event.rangeParent && domSelection !== null) {
-    domSelection.collapse(event.rangeParent, event.rangeOffset || 0)
-    range = domSelection.getRangeAt(0)
-  } else {
-    throw Error(`Cannot get the selection when dragging`)
+  } else if (dragEvent.rangeParent && domSelection !== null) {
+    domSelection.collapse(dragEvent.rangeParent, dragEvent.rangeOffset ?? 0)
+    range = domSelection.rangeCount > 0 ? domSelection.getRangeAt(0) : null
   }
-  return range
+  return range ?? null
 }

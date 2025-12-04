@@ -73,6 +73,8 @@ export default function CreatePostPage() {
         onSubmit={handleSubmit}
         submitting={submitting}
         submitLabel="Tạo bài viết"
+        hideSlug
+        hideOrder
         extraActions={
           <Link
             href="/admin/posts"

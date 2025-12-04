@@ -1,7 +1,7 @@
 "use client"
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
-import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, EditorState, COMMAND_PRIORITY_CRITICAL } from "lexical"
+import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, EditorState, COMMAND_PRIORITY_CRITICAL, LexicalNode } from "lexical"
 import { TOGGLE_LINK_COMMAND } from "@lexical/link"
 import { useState, useCallback, useEffect, useRef, JSX } from "react"
 import { Link as LinkIcon, Unlink } from "lucide-react"
@@ -88,9 +88,9 @@ export function LinkToolbarPlugin(): JSX.Element {
                     let foundLink = false
 
                     for (const node of nodes) {
-                        let current = node
+                        let current: LexicalNode | null = node
                         while (current) {
-                            if (current.__type === "link") {
+                            if (current.getType() === "link") {
                                 foundLink = true
                                 break
                             }
@@ -116,9 +116,9 @@ export function LinkToolbarPlugin(): JSX.Element {
                         let foundLink = false
 
                         for (const node of nodes) {
-                            let current = node
+                            let current: LexicalNode | null = node
                             while (current) {
-                                if (current.__type === "link") {
+                                if (current.getType() === "link") {
                                     foundLink = true
                                     break
                                 }

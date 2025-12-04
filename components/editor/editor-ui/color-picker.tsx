@@ -12,14 +12,17 @@ interface ColorPickerProps
   onValueChange?: (value: string) => void
 }
 
-const ColorPicker = React.forwardRef<
-  React.ElementRef<typeof PopoverPrimitive.Root>,
-  ColorPickerProps
->(({ value = "#000000", onValueChange, children, open, ...props }, ref) => (
+const ColorPicker = ({
+  value = "#000000",
+  onValueChange,
+  children,
+  open,
+  ...props
+}: ColorPickerProps) => (
   <PopoverPrimitive.Root open={open} {...props}>
     {children}
   </PopoverPrimitive.Root>
-))
+)
 ColorPicker.displayName = "ColorPicker"
 
 const ColorPickerTrigger = React.forwardRef<

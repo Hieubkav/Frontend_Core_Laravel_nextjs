@@ -2,6 +2,7 @@
 
 import {
   $applyNodeReplacement,
+  $createNodeSelection,
   $getSelection,
   $getRoot,
   $isNodeSelection,
@@ -23,6 +24,7 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
+import type { JSX } from 'react';
 
 export type InsertImagePayload = {
   src: string;
@@ -179,7 +181,9 @@ const ImagesPlugin = () => {
           if (!inserted) {
             // Fallback: gắn trực tiếp vào root
             root.append(imageNode);
-            imageNode.select();
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(imageNode.getKey());
+            $setSelection(nodeSelection);
           }
         }
 

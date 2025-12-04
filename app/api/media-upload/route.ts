@@ -22,15 +22,16 @@ export async function POST(request: Request) {
     }
 
     const isImage = (file.type || '').startsWith('image/');
-    let outputBuffer: Buffer;
+    let outputBuffer: Uint8Array;
     let outputType = file.type;
     let outputName = file.name;
 
-    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    const inputBuffer = new Uint8Array(await file.arrayBuffer());
 
     if (isImage && file.type !== 'image/svg+xml') {
       try {
-        outputBuffer = await sharp(inputBuffer).webp({ quality: 82 }).toBuffer();
+        const converted = await sharp(inputBuffer).webp({ quality: 82 }).toBuffer();
+        outputBuffer = new Uint8Array(converted);
         outputType = 'image/webp';
         const baseName = file.name.replace(/\.[^.]+$/, '');
         outputName = `${baseName}.webp`;
@@ -44,7 +45,9 @@ export async function POST(request: Request) {
 
     // Build multipart payload to backend
     const payload = new FormData();
-    payload.append('file', new Blob([outputBuffer], { type: outputType }), outputName);
+    const arrayBuffer = new ArrayBuffer(outputBuffer.byteLength);
+    new Uint8Array(arrayBuffer).set(outputBuffer);
+    payload.append('file', new Blob([arrayBuffer], { type: outputType }), outputName);
 
     // forward optional fields
     const forwardFields = ['name', 'title', 'alt', 'collection_name'];
