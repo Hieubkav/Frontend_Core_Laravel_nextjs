@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 
-export default function PostsLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -36,7 +36,6 @@ export default function PostsLayout({ children }: { children: React.ReactNode })
   const handleThemeToggle = () => setIsDarkMode((v) => !v);
 
   const handleChangeView = (view: string) => {
-    // chuyển hướng nhanh giữa các mục chính
     const map: Record<string, string> = {
       dashboard: '/admin',
       posts: '/admin/posts',
@@ -46,10 +45,27 @@ export default function PostsLayout({ children }: { children: React.ReactNode })
     if (target) router.push(target);
   };
 
+  const getCurrentView = () => {
+    if (pathname?.includes('/posts')) return 'posts';
+    if (pathname?.includes('/users')) return 'users';
+    return 'dashboard';
+  };
+
   const getBreadcrumbs = () => {
-    if (pathname?.endsWith('/create')) return ['Bài viết', 'Tạo mới'];
-    if (pathname?.match(/\/posts\/\d+$/)) return ['Bài viết', 'Chỉnh sửa'];
-    return ['Bài viết', 'Danh sách'];
+    const view = getCurrentView();
+
+    if (view === 'posts') {
+      if (pathname?.endsWith('/create')) return ['Bài viết', 'Tạo mới'];
+      if (pathname?.match(/\/posts\/\d+(?:\/edit)?$/)) return ['Bài viết', 'Chỉnh sửa'];
+      return ['Bài viết', 'Danh sách'];
+    }
+
+    if (view === 'users') {
+      if (pathname?.endsWith('/edit')) return ['Người dùng', 'Chỉnh sửa'];
+      return ['Người dùng', 'Danh sách'];
+    }
+
+    return ['Dashboard'];
   };
 
   return (
@@ -72,7 +88,7 @@ export default function PostsLayout({ children }: { children: React.ReactNode })
         <Sidebar
           collapsed={sidebarCollapsed}
           setCollapsed={setSidebarCollapsed}
-          currentView="posts"
+          currentView={getCurrentView()}
           currentPath={pathname}
           onChangeView={handleChangeView}
         />

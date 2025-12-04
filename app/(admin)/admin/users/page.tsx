@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 import api from '@/lib/api';
+import { Pencil, Trash2, Settings2 } from 'lucide-react';
 
 interface User {
   id: number;
@@ -14,268 +15,320 @@ interface User {
   created_at: string;
 }
 
+type ColumnKey = 'email' | 'role' | 'created';
+
+const columnOptions: { key: ColumnKey; label: string }[] = [
+  { key: 'email', label: 'Email' },
+  { key: 'role', label: 'Vai trò' },
+  { key: 'created', label: 'Ngày tạo' },
+];
+
+type Toast = { id: number; type: 'success' | 'error'; message: string };
+
 export default function UsersPage() {
-  const { user: currentUser, loading } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user' as 'user' | 'admin',
-  });
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
+  const [visibleCols, setVisibleCols] = useState<Record<ColumnKey, boolean>>({
+    email: true,
+    role: true,
+    created: true,
+  });
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const loadUsers = async () => {
     try {
       const response = await api.get<{ data: User[] }>('/users');
       setUsers(response.data.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load users');
+      const msg = err.response?.data?.message || 'Không thể tải danh sách người dùng';
+      setError(msg);
+      pushToast('error', msg);
     } finally {
       setPageLoading(false);
     }
   };
 
-  // Load users on mount
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsSaving(true);
-
-    try {
-      await api.post('/users', formData);
-      setSuccessMessage('User created successfully!');
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        role: 'user',
-      });
-      setShowCreateForm(false);
-      await loadUsers();
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err: any) {
-      if (err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        const firstError = Object.values(errors)[0] as string[];
-        setError(firstError?.[0] || 'Creation failed');
-      } else {
-        setError(err.response?.data?.message || 'Creation failed');
-      }
-    } finally {
-      setIsSaving(false);
-    }
+  const pushToast = (type: Toast['type'], message: string) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3200);
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) {
+    if (!confirm('Bạn có chắc chắn muốn xoá người dùng này?')) {
       return;
     }
 
     try {
       await api.delete(`/users/${userId}`);
-      setSuccessMessage('User deleted successfully!');
+      pushToast('success', 'Xoá người dùng thành công');
       await loadUsers();
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Delete failed');
+      pushToast('error', err.response?.data?.message || 'Xoá thất bại');
     }
   };
 
-  if (loading || pageLoading) {
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Bạn có chắc chắn muốn xoá ${selectedIds.size} người dùng?`)) {
+      return;
+    }
+
+    const ids = Array.from(selectedIds);
+    try {
+      await Promise.all(ids.map((id) => api.delete(`/users/${id}`)));
+      pushToast('success', `Đã xoá ${ids.length} người dùng`);
+      setSelectedIds(new Set());
+      await loadUsers();
+    } catch (err: any) {
+      pushToast('error', err.response?.data?.message || 'Xoá thất bại');
+    }
+  };
+
+  const toggleColumn = (key: ColumnKey) => {
+    setVisibleCols((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === users.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(users.map((u) => u.id)));
+    }
+  };
+
+  const toggleSelectRow = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const baseColumns = 3; // checkbox + STT + actions
+  const emptyColSpan =
+    baseColumns +
+    1 + // name column
+    Number(visibleCols.email) +
+    Number(visibleCols.role) +
+    Number(visibleCols.created);
+
+  if (authLoading || pageLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">Đang tải...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Manage Users</h1>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-semibold"
-        >
-          {showCreateForm ? 'Cancel' : 'Create User'}
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Quản lý người dùng</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Danh sách người dùng hệ thống và quyền truy cập.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setColumnMenuOpen((v) => !v)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-400"
+            >
+              <Settings2 size={18} />
+              <span className="hidden sm:inline">Ẩn / hiện cột</span>
+            </button>
+            {columnMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl z-10">
+                <div className="p-3 space-y-2">
+                  {columnOptions.map((col) => (
+                    <label
+                      key={col.key}
+                      className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleCols[col.key]}
+                        onChange={() => toggleColumn(col.key)}
+                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-indigo-600"
+                      />
+                      <span>{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <Link
+            href="/admin/users/create"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-sm"
+          >
+            + Tạo người dùng
+          </Link>
+        </div>
       </div>
 
-      {/* Success Message */}
-      {successMessage && (
-        <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-lg border border-green-300">
-          {successMessage}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap gap-3 items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-700 dark:text-slate-200">Bulk action:</span>
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedIds.size === 0}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/40 disabled:opacity-40"
+            >
+              <Trash2 size={16} /> Xoá ({selectedIds.size})
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
+        <div className="p-4 bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200 rounded-lg border border-red-200 dark:border-red-500/40">
           {error}
         </div>
       )}
 
-      {/* Create Form */}
-      {showCreateForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Create New User</h2>
-
-          <form onSubmit={handleCreateUser}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Min 8 chars, uppercase, lowercase, number"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Role</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'user' | 'admin' })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition font-semibold"
-            >
-              {isSaving ? 'Creating...' : 'Create User'}
-            </button>
-          </form>
-        </div>
-      )}
-
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Name
+            <thead className="bg-slate-100 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-700">
+              <tr className="text-left text-xs font-semibold uppercase text-slate-700 dark:text-slate-200">
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === users.length && users.length > 0}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-indigo-600"
+                  />
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Actions
-                </th>
+                <th className="px-4 py-3">Tên</th>
+                {visibleCols.email && <th className="px-4 py-3">Email</th>}
+                {visibleCols.role && <th className="px-4 py-3">Vai trò</th>}
+                {visibleCols.created && <th className="px-4 py-3">Ngày tạo</th>}
+                <th className="px-4 py-3 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    No users found
+                  <td
+                    colSpan={emptyColSpan}
+                    className="px-6 py-8 text-center text-slate-500 dark:text-slate-400"
+                  >
+                    Chưa có người dùng nào
                   </td>
                 </tr>
               ) : (
-                users.map((u) => (
-                  <tr key={u.id} className="border-b hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{u.name}</div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{u.email}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                          u.is_admin
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}
-                      >
-                        {u.role.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm space-x-2">
-                      <Link
-                        href={`/admin/users/${u.id}/edit`}
-                        className="text-blue-600 hover:text-blue-700 font-semibold"
-                      >
-                        Edit
-                      </Link>
-                      {currentUser?.id !== u.id && (
-                        <>
-                          <span className="text-gray-300">|</span>
-                          <button
-                            onClick={() => handleDeleteUser(u.id)}
-                            className="text-red-600 hover:text-red-700 font-semibold"
-                          >
-                            Delete
-                          </button>
-                        </>
+                users.map((u, idx) => {
+                  const zebra =
+                    idx % 2 === 0
+                      ? 'bg-white dark:bg-slate-800/60'
+                      : 'bg-slate-50 dark:bg-slate-800/40';
+
+                  return (
+                    <tr
+                      key={u.id}
+                      className={`${zebra} border-b last:border-0 border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors`}
+                    >
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(u.id)}
+                          onChange={() => toggleSelectRow(u.id)}
+                          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-indigo-600"
+                        />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="font-semibold text-slate-900 dark:text-white">
+                          {u.name}
+                        </div>
+                      </td>
+                      {visibleCols.email && (
+                        <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{u.email}</td>
                       )}
-                    </td>
-                  </tr>
-                ))
+                      {visibleCols.role && (
+                        <td className="px-4 py-4">
+                          <span
+                            className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                              u.is_admin
+                                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200'
+                                : 'bg-slate-100 text-slate-800 dark:bg-slate-600 dark:text-slate-200'
+                            }`}
+                          >
+                            {u.role === 'admin' ? 'Quản trị' : 'Người dùng'}
+                          </span>
+                        </td>
+                      )}
+                      {visibleCols.created && (
+                        <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
+                          {new Date(u.created_at).toLocaleDateString('vi-VN')}
+                        </td>
+                      )}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/users/${u.id}/edit`}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-700"
+                            title="Chỉnh sửa"
+                          >
+                            <Pencil size={16} />
+                          </Link>
+                          {currentUser?.id !== u.id && (
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-slate-700"
+                              title="Xoá"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Toast stack */}
+      <div className="fixed top-6 right-6 space-y-2 z-50">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`min-w-[240px] max-w-sm px-4 py-3 rounded-lg shadow-lg border ${
+              toast.type === 'success'
+                ? 'bg-green-600 text-white border-green-500'
+                : 'bg-red-600 text-white border-red-500'
+            }`}
+          >
+            {toast.message}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -5,15 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  ShoppingCart,
   Users,
   Settings,
-  PieChart,
   ChevronLeft,
   ChevronRight,
-  Package,
   Bell,
-  Database,
   FileText,
 } from 'lucide-react';
 
@@ -39,10 +35,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng Quan', href: '/admin' },
     { id: 'posts', icon: FileText, label: 'Bài viết', href: '/admin/posts' },
     { id: 'users', icon: Users, label: 'Người Dùng', href: '/admin/users' },
-    { id: 'orders', icon: ShoppingCart, label: 'Đơn Hàng' },
-    { id: 'products', icon: Package, label: 'Sản Phẩm' },
-    { id: 'analytics', icon: PieChart, label: 'Phân Tích' },
-    { id: 'data', icon: Database, label: 'Quản Lý Dữ Liệu' },
   ];
 
   const bottomItems = [
