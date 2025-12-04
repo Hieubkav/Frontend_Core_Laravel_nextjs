@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Bell,
   FileText,
+  Images,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng Quan', href: '/admin' },
     { id: 'posts', icon: FileText, label: 'Bài viết', href: '/admin/posts' },
+    { id: 'media', icon: Images, label: 'Media', href: '/admin/media' },
     { id: 'users', icon: Users, label: 'Người Dùng', href: '/admin/users' },
   ];
 

@@ -1,16 +1,17 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { Search, Bell, Menu, Sun, Moon, ChevronRight, User, LogOut, Settings } from 'lucide-react';
+import { Search, Bell, Menu, Sun, Moon, ChevronRight, User, LogOut, Settings, ImagePlus } from 'lucide-react';
 
 interface HeaderProps {
   toggleSidebar: () => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
   breadcrumbs: string[];
+  onOpenMedia?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, isDarkMode, toggleTheme, breadcrumbs }) => {
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, isDarkMode, toggleTheme, breadcrumbs, onOpenMedia }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -85,6 +86,17 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isDarkMode, toggleTheme,
             className="h-9 w-64 lg:w-80 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 pl-9 pr-4 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-slate-200 transition-all placeholder:text-slate-400"
           />
         </div>
+
+        {/* Media quick access */}
+        {onOpenMedia && (
+          <button
+            onClick={onOpenMedia}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800 text-sm font-semibold"
+          >
+            <ImagePlus size={18} />
+            <span className="hidden sm:inline">Media</span>
+          </button>
+        )}
 
         {/* Theme Toggle */}
         <button 

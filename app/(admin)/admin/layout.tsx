@@ -4,11 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import MediaModal from './components/MediaModal';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -39,6 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const map: Record<string, string> = {
       dashboard: '/admin',
       posts: '/admin/posts',
+      media: '/admin/media',
       users: '/admin/users',
     };
     const target = map[view];
@@ -47,6 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const getCurrentView = () => {
     if (pathname?.includes('/posts')) return 'posts';
+    if (pathname?.includes('/media')) return 'media';
     if (pathname?.includes('/users')) return 'users';
     return 'dashboard';
   };
@@ -58,6 +62,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (pathname?.endsWith('/create')) return ['Bài viết', 'Tạo mới'];
       if (pathname?.match(/\/posts\/\d+(?:\/edit)?$/)) return ['Bài viết', 'Chỉnh sửa'];
       return ['Bài viết', 'Danh sách'];
+    }
+
+    if (view === 'media') {
+      if (pathname?.endsWith('/media/create')) return ['Media', 'Tải mới'];
+      if (pathname?.match(/\/media\/[^/]+$/)) return ['Media', 'Chỉnh sửa'];
+      return ['Media', 'Danh sách'];
     }
 
     if (view === 'users') {
@@ -101,11 +111,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           isDarkMode={isDarkMode}
           toggleTheme={handleThemeToggle}
           breadcrumbs={getBreadcrumbs()}
+          onOpenMedia={() => setMediaModalOpen(true)}
         />
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto scroll-smooth">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
+
+        <MediaModal
+          open={mediaModalOpen}
+          onClose={() => setMediaModalOpen(false)}
+        />
       </div>
     </div>
   );
