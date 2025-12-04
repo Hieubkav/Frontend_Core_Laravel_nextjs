@@ -36,13 +36,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng Quan', href: '/admin' },
     { id: 'posts', icon: FileText, label: 'Bài viết', href: '/admin/posts' },
     { id: 'media', icon: Images, label: 'Media', href: '/admin/media' },
-    { id: 'users', icon: Users, label: 'Người Dùng', href: '/admin/users' },
+    { id: 'users', icon: Users, label: 'Người dùng', href: '/admin/users' },
+    { id: 'settings', icon: Settings, label: 'Cài Đặt', href: '/admin/settings' },
   ];
 
-  const bottomItems = [
-    { id: 'notifications', icon: Bell, label: 'Thông Báo' },
-    { id: 'settings', icon: Settings, label: 'Cài Đặt' },
-  ];
+  const bottomItems = [{ id: 'notifications', icon: Bell, label: 'Thông Báo' }];
 
   const normalizePath = (path?: string | null) =>
     (path || '').replace(/\/+$/, '') || '/';
@@ -52,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const isActive = (itemId: string, href?: string) => {
     if (href) {
       const hrefNormalized = normalizePath(href);
-      // Dashboard chỉ active ở đúng /admin, không ăn theo các route con
+      // Dashboard chỉ active ở dạng /admin, không áp theo các route con
       if (hrefNormalized === '/admin') {
         return activeNormalized === hrefNormalized;
       }
@@ -65,9 +63,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     const active = isActive(item.id, item.href);
     const commonClasses = `
       w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group
-      ${active
-        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-md'
-        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
+      ${
+        active
+          ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-md'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
       }
       ${collapsed ? 'justify-center' : ''}
     `;
@@ -112,7 +111,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     >
       {/* Logo Area */}
       <div
-        className={`p-6 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} border-b border-slate-100 dark:border-slate-800 h-16`}
+        className={`p-6 flex items-center ${
+          collapsed ? 'justify-center' : 'justify-between'
+        } border-b border-slate-100 dark:border-slate-800 h-16`}
       >
         {!collapsed && (
           <div className="flex items-center gap-2">

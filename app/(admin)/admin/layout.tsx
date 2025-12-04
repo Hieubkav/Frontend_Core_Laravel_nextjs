@@ -7,22 +7,18 @@ import Header from './components/Header';
 import MediaModal from './components/MediaModal';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('theme');
+    const prefersDark =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return stored === 'dark' ? true : stored === 'light' ? false : prefersDark;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-
-  // Hydrate theme from localStorage / system
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem('theme');
-    const prefersDark =
-      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const next = stored === 'dark' ? true : stored === 'light' ? false : prefersDark;
-    setIsDarkMode(next);
-  }, []);
 
   // Apply theme class + persist
   useEffect(() => {
@@ -43,6 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       posts: '/admin/posts',
       media: '/admin/media',
       users: '/admin/users',
+      settings: '/admin/settings',
     };
     const target = map[view];
     if (target) router.push(target);
@@ -52,6 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (pathname?.includes('/posts')) return 'posts';
     if (pathname?.includes('/media')) return 'media';
     if (pathname?.includes('/users')) return 'users';
+    if (pathname?.includes('/settings')) return 'settings';
     return 'dashboard';
   };
 
@@ -73,6 +71,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (view === 'users') {
       if (pathname?.endsWith('/edit')) return ['Người dùng', 'Chỉnh sửa'];
       return ['Người dùng', 'Danh sách'];
+    }
+
+    if (view === 'settings') {
+      return ['Cài đặt'];
     }
 
     return ['Dashboard'];
@@ -118,10 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
 
-        <MediaModal
-          open={mediaModalOpen}
-          onClose={() => setMediaModalOpen(false)}
-        />
+        <MediaModal open={mediaModalOpen} onClose={() => setMediaModalOpen(false)} />
       </div>
     </div>
   );
