@@ -19,25 +19,27 @@ import {
   ColorPickerInput,
   ColorPickerTrigger,
 } from "@/components/editor/editor-ui/color-picker"
+import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar"
 
 export function FontBackgroundToolbarPlugin(): JSX.Element {
   const [editor] = useLexicalComposerContext()
   const [bgColor, setBgColor] = useState("")
 
-  const $updateToolbar = (selection: BaseSelection) => {
+  const $updateToolbar = useCallback((selection: BaseSelection) => {
     if ($isRangeSelection(selection)) {
       setBgColor(
         $getSelectionStyleValueForProperty(selection, "background-color", "")
       )
     }
-  }
+  }, [])
+
+  useUpdateToolbarHandler($updateToolbar)
 
   const applyStyleText = useCallback(
     (styles: Record<string, string>) => {
       editor.update(() => {
         const selection = $getSelection()
-        editor.setEditable(false)
-        if (selection !== null) {
+        if ($isRangeSelection(selection)) {
           $patchStyleText(selection, styles)
         }
       })
@@ -47,6 +49,7 @@ export function FontBackgroundToolbarPlugin(): JSX.Element {
 
   const onBgColorSelect = useCallback(
     (value: string) => {
+      setBgColor(value)
       applyStyleText({ "background-color": value })
     },
     [applyStyleText]

@@ -19,25 +19,27 @@ import {
   ColorPickerInput,
   ColorPickerTrigger,
 } from "@/components/editor/editor-ui/color-picker"
+import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar"
 
 export function FontColorToolbarPlugin(): JSX.Element {
   const [editor] = useLexicalComposerContext()
-  const [fontColor, setFontColor] = useState("")
+  const [fontColor, setFontColor] = useState("#000000")
 
-  const $updateToolbar = (selection: BaseSelection) => {
+  const $updateToolbar = useCallback((selection: BaseSelection) => {
     if ($isRangeSelection(selection)) {
       setFontColor(
-        $getSelectionStyleValueForProperty(selection, "color", "")
+        $getSelectionStyleValueForProperty(selection, "color", "#000000")
       )
     }
-  }
+  }, [])
+
+  useUpdateToolbarHandler($updateToolbar)
 
   const applyStyleText = useCallback(
     (styles: Record<string, string>) => {
       editor.update(() => {
         const selection = $getSelection()
-        editor.setEditable(false)
-        if (selection !== null) {
+        if ($isRangeSelection(selection)) {
           $patchStyleText(selection, styles)
         }
       })
@@ -47,6 +49,7 @@ export function FontColorToolbarPlugin(): JSX.Element {
 
   const onFontColorSelect = useCallback(
     (value: string) => {
+      setFontColor(value)
       applyStyleText({ color: value })
     },
     [applyStyleText]
