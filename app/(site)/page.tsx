@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Code2, Zap, Lock } from 'lucide-react';
+import { ArrowRight, Code2, Zap, Lock, BookOpen } from 'lucide-react';
 
 export const metadata = {
     title: 'Core - Nền tảng quản lý hiện đại',
@@ -57,6 +57,13 @@ export default function Home() {
                             >
                                 Vào Dashboard
                                 <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition" />
+                            </Link>
+                            <Link
+                                href="/docs"
+                                className="inline-flex items-center gap-2 rounded-lg border border-amber-200 px-6 py-3 font-medium text-amber-700 hover:border-amber-300 hover:bg-amber-50 transition"
+                            >
+                                <BookOpen className="h-4 w-4" />
+                                API Documentation
                             </Link>
                             <Link
                                 href="#features"
@@ -129,6 +136,21 @@ export default function Home() {
                                     React 19, Server Components, routing tự động. Nhanh mạnh hiệu quả.
                                 </p>
                             </div>
+
+                            <div className="rounded-xl bg-white p-6 ring-1 ring-gray-200">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-100">
+                                        <BookOpen className="h-6 w-6 text-rose-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Docs</p>
+                                        <p className="font-semibold text-gray-900">API Documentation</p>
+                                    </div>
+                                </div>
+                                <p className="mt-3 text-sm text-gray-600">
+                                    Tài liệu chi tiết mọi endpoint. Dễ dàng integrate và phát triển.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -199,6 +221,13 @@ export default function Home() {
                             className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 transition"
                         >
                             Vào Dashboard
+                        </Link>
+                        <Link
+                            href="/docs"
+                            className="rounded-lg border border-amber-200 px-6 py-3 font-medium text-amber-700 hover:border-amber-300 hover:bg-amber-50 transition"
+                        >
+                            <BookOpen className="h-4 w-4 inline mr-2" />
+                            Xem API Docs
                         </Link>
                         <Link
                             href="/login"
