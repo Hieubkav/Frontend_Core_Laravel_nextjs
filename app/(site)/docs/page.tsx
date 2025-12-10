@@ -183,6 +183,120 @@ const endpoints: Endpoint[] = [
     ],
   },
 
+  // Posts endpoints (admin only)
+  {
+    method: 'GET',
+    path: '/api/v1/posts',
+    description: 'Lấy danh sách bài viết',
+    auth: true,
+    admin: true,
+    params: [
+      { name: 'page', type: 'integer', required: false, description: 'Trang hiển thị (mặc định: 1)' },
+      { name: 'per_page', type: 'integer', required: false, description: 'Số bản ghi trên trang (mặc định: 15)' },
+    ],
+    response: [
+      {
+        status: 200,
+        description: 'Lấy danh sách thành công',
+        example: {
+          success: true,
+          message: 'Posts retrieved successfully',
+          data: [
+            { id: 1, title: 'Post 1', slug: 'post-1', content: 'Content...' },
+            { id: 2, title: 'Post 2', slug: 'post-2', content: 'Content...' },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/posts',
+    description: 'Tạo bài viết mới',
+    auth: true,
+    admin: true,
+    body: [
+      { name: 'title', type: 'string', required: true, description: 'Tiêu đề bài viết' },
+      { name: 'slug', type: 'string', required: true, description: 'Slug (URL friendly)' },
+      { name: 'content', type: 'text', required: true, description: 'Nội dung bài viết' },
+    ],
+    response: [
+      {
+        status: 201,
+        description: 'Tạo thành công',
+        example: {
+          success: true,
+          message: 'Post created successfully',
+          data: { id: 3, title: 'New Post', slug: 'new-post', content: 'Content...' },
+        },
+      },
+    ],
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/posts/{id}',
+    description: 'Lấy chi tiết bài viết',
+    auth: true,
+    admin: true,
+    params: [
+      { name: 'id', type: 'integer', required: true, description: 'ID bài viết' },
+    ],
+    response: [
+      {
+        status: 200,
+        description: 'Lấy chi tiết thành công',
+        example: {
+          success: true,
+          message: 'Post retrieved successfully',
+          data: { id: 1, title: 'Post 1', slug: 'post-1', content: 'Content...' },
+        },
+      },
+    ],
+  },
+  {
+    method: 'PUT',
+    path: '/api/v1/posts/{id}',
+    description: 'Cập nhật bài viết',
+    auth: true,
+    admin: true,
+    body: [
+      { name: 'title', type: 'string', required: false, description: 'Tiêu đề bài viết' },
+      { name: 'slug', type: 'string', required: false, description: 'Slug (URL friendly)' },
+      { name: 'content', type: 'text', required: false, description: 'Nội dung bài viết' },
+    ],
+    response: [
+      {
+        status: 200,
+        description: 'Cập nhật thành công',
+        example: {
+          success: true,
+          message: 'Post updated successfully',
+          data: { id: 1, title: 'Updated Post', slug: 'post-1', content: 'Content...' },
+        },
+      },
+    ],
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/posts/{id}',
+    description: 'Xóa bài viết',
+    auth: true,
+    admin: true,
+    params: [
+      { name: 'id', type: 'integer', required: true, description: 'ID bài viết' },
+    ],
+    response: [
+      {
+        status: 200,
+        description: 'Xóa thành công',
+        example: {
+          success: true,
+          message: 'Post deleted successfully',
+        },
+      },
+    ],
+  },
+
   // Settings endpoint
   {
     method: 'GET',
