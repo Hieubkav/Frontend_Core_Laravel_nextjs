@@ -57,9 +57,4 @@ export interface Transaction {
   amount: string;
   status: 'Success' | 'Pending' | 'Failed';
 }
-
-export interface GeminiAnalysisResult {
-  summary: string;
-  suggestion: string;
-  risk: string;
-}
+
